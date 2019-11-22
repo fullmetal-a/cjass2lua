@@ -81,7 +81,7 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="D:\Downloads\main.ico">
+    <Image Include="main.ico">
       <Filter>Файлы ресурсов</Filter>
     </Image>
   </ItemGroup>

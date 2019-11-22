@@ -186,7 +186,7 @@
     <ResourceCompile Include="resource.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="D:\Downloads\main.ico" />
+    <Image Include="main.ico" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="cJass2Lua.manifest" />

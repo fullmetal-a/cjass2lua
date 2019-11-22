@@ -7,6 +7,7 @@
 #include <tlhelp32.h>
 #include <Shlwapi.h>
 #include <regex>
+#include <Shlobj.h>
 #include "reutils.h"
 #include "Settings.h"
 
@@ -349,5 +350,76 @@ namespace Utils
 			return cJass::OperationObject::ConstType::String;
 
 		return cJass::OperationObject::ConstType::Undefined;
+	}
+
+	std::string browse(HWND mainWnd, HWND outputWindow, bool save)
+	{
+		OPENFILENAMEA ofna;
+		ZeroMemory(&ofna, sizeof(ofna));
+		char buf[MAX_PATH] = { 0 };
+		std::string fileNameStr;
+
+		ofna.lStructSize = sizeof(OPENFILENAME);
+		ofna.hwndOwner = mainWnd;
+		ofna.hInstance = GetModuleHandleA(NULL);
+		if (!save)
+			ofna.lpstrFilter = "JASS/cJass script (*.j, *.jass, *.cjass, *.cj, *.jj, *.w3j, *.w3cj)\0*.j;*.jass;*.cjass;*.cj;*.jj;*.w3j;*.w3cj\0Text (*.txt)\0*.txt\0All\0*.*\0";
+		else
+			ofna.lpstrFilter = "Lua script (*.lua)\0*.lua\0";
+		ofna.nFilterIndex = 1;
+		ofna.lpstrFile = buf;
+		ofna.nMaxFile = sizeof(buf);
+		ofna.nMaxFileTitle = 0;
+		ofna.lpstrInitialDir = NULL;
+		if (!save)
+			ofna.lpstrTitle = "Select input cJass/JASS file";
+		else
+			ofna.lpstrTitle = "Save output Lua file as";
+		ofna.Flags = OFN_ENABLESIZING | OFN_EXPLORER | OFN_PATHMUSTEXIST;
+		if (!save)
+			ofna.Flags |= OFN_FILEMUSTEXIST;
+
+		BOOL res;
+		if (!save)
+			res = GetOpenFileNameA(&ofna);
+		else
+			res = GetSaveFileNameA(&ofna);
+
+		if (!res)
+			return "";
+
+		fileNameStr.append(buf);
+		if (save)
+		{
+			if (fileNameStr.find(".lua") != fileNameStr.length() - 4)
+				fileNameStr += ".lua";
+		}
+
+		SetWindowTextA(outputWindow, &fileNameStr[0]);
+		return fileNameStr;
+	}
+
+	std::string browseDir(HWND ouputWindow)
+	{
+		BROWSEINFO bi;
+		CHAR szDisplayName[MAX_PATH];
+		LPITEMIDLIST pidl;
+		LPMALLOC  pMalloc = NULL;
+		ZeroMemory(&bi, sizeof(bi));
+		bi.hwndOwner = NULL;
+		bi.pszDisplayName = szDisplayName;
+		bi.lpszTitle = "Select folder";
+		bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_EDITBOX | BIF_NEWDIALOGSTYLE;
+		pidl = SHBrowseForFolder(&bi);
+
+		if (pidl)
+		{
+			SHGetPathFromIDList(pidl, szDisplayName);
+			SetWindowTextA(ouputWindow, szDisplayName);
+		}
+		else
+			return "";
+
+		return szDisplayName;
 	}
 }

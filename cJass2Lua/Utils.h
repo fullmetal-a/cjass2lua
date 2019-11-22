@@ -35,4 +35,6 @@ namespace Utils
 	int rawCodeToInt(std::string code);
 	std::string const2lua(const std::string& cnst);
 	cJass::OperationObject::ConstType determConstType(const std::string& cjConst);
+	std::string browse(HWND mainWnd, HWND outputWindow, bool save);
+	std::string browseDir(HWND ouputWindow);
 }

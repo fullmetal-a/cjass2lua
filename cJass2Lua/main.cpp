@@ -30,6 +30,8 @@ enum
 	IDC_PROGRESS_FILES,
 	IDC_PROGRESS_LINES,
 	IDC_PROGRESS_NODES,
+	IDC_BROWSE_INPUT,
+	IDC_BROWSE_OUTPUT,
 	IDC_BUTTON
 };
 
@@ -73,6 +75,13 @@ void lineParserCallback(int current, int total)
 
 void nodeParserCallback(int current, int total)
 {
+	static int lastTotal;
+	if (total == -1)
+		total = lastTotal;
+	else
+		lastTotal = total;
+	if (current == -1)
+		current = total;
 	const char fmt[] = "Nodes written: %d/%d";
 	char buf[128];
 	sprintf_s(buf, sizeof(buf), fmt, current, total);
@@ -118,7 +127,7 @@ void parserThread(ParseArgs args)
 				fname = entry.path().u8string();
 				if (Utils::dirExists(fname))
 					continue;
-
+				
 				if (!Utils::strEndsWith(fname, ".txt")
 					&& !Utils::strEndsWith(fname, ".j")
 					&& !Utils::strEndsWith(fname, ".jass")
@@ -166,7 +175,7 @@ void parserThread(ParseArgs args)
 					nodeParserCallback(0, 0);
 				setFilesParsed(fileCounter, filesTotal);
 			}
-
+			nodeParserCallback(-1, -1);
 			SetWindowTextA(args.status, "Status: Done!");
 			EnableWindow(args.button, true);
 			UpdateWindow(args.hwnd);
@@ -188,6 +197,7 @@ void parserThread(ParseArgs args)
 
 				SetWindowTextA(args.status, status.c_str());
 				UpdateWindow(args.hwnd);
+				setFilesParsed(0, 1);
 				_parser->Parse(args.in, lineParserCallback);
 				SetWindowTextA(args.status, status2.c_str());
 				UpdateWindow(args.hwnd);
@@ -329,13 +339,15 @@ INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 		//Begin constructing window
 		int ox = 10, oy = 4;
-		Utils::CreateWindowElement(hwnd, ET_STATIC, TEXT("Input file or directory"), hInstance, WS_VISIBLE, NULL, NULL, ox, oy, 132, 20, false);
+		Utils::CreateWindowElement(hwnd, ET_STATIC, TEXT("Input file or directory (Hold Shift and press Browse to select a folder)"), hInstance, WS_VISIBLE, NULL, NULL, ox, oy, 350, 20, false);
 		oy += 17;
-		Utils::CreateWindowElement(hwnd, ET_EDIT, Settings::lastInputPath.c_str(), hInstance, WS_VISIBLE | WS_BORDER | WS_TABSTOP, NULL, HMENU(IDC_INPUT), ox, oy, 400, 23, false);
+		Utils::CreateWindowElement(hwnd, ET_EDIT, Settings::lastInputPath.c_str(), hInstance, WS_VISIBLE | WS_BORDER | WS_TABSTOP | WS_DISABLED, NULL, HMENU(IDC_INPUT), ox, oy, 330, 23, false);
+		Utils::CreateWindowElement(hwnd, ET_BUTTON, TEXT("Browse"), hInstance, WS_VISIBLE | WS_TABSTOP | BS_FLAT, NULL, HMENU(IDC_BROWSE_INPUT), ox + 340, oy, 60, 23, false);
 		oy += 27;
-		Utils::CreateWindowElement(hwnd, ET_STATIC, TEXT("Output file or directory"), hInstance, WS_VISIBLE, NULL, NULL, ox, oy, 132, 20, false);
+		Utils::CreateWindowElement(hwnd, ET_STATIC, TEXT("Output file or directory (Hold Shift and press Browse to select a folder)"), hInstance, WS_VISIBLE, NULL, NULL, ox, oy, 350, 20, false);
 		oy += 17;
-		Utils::CreateWindowElement(hwnd, ET_EDIT, Settings::lastOutputPath.c_str(), hInstance, WS_VISIBLE | WS_BORDER | WS_TABSTOP, NULL, HMENU(IDC_OUTPUT), ox, oy, 400, 23, false);
+		Utils::CreateWindowElement(hwnd, ET_EDIT, Settings::lastOutputPath.c_str(), hInstance, WS_VISIBLE | WS_BORDER | WS_TABSTOP | WS_DISABLED, NULL, HMENU(IDC_OUTPUT), ox, oy, 330, 23, false);
+		Utils::CreateWindowElement(hwnd, ET_BUTTON, TEXT("Browse"), hInstance, WS_VISIBLE | WS_TABSTOP | BS_FLAT, NULL, HMENU(IDC_BROWSE_OUTPUT), ox + 340, oy, 60, 23, false);
 		oy += 27;
 		Utils::CreateWindowElement(hwnd, ET_STATIC, TEXT("Status: Ready"), hInstance, WS_VISIBLE, NULL, HMENU(IDC_STATUS), ox, oy, 400, 25, false);
 		oy += 31;
@@ -444,6 +456,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	btn = GetDlgItem(hwnd, IDC_BUTTON);
 	auto wp = LOWORD(wParam);
 
+	bool isShiftDown = ((1 << 15) & GetAsyncKeyState(VK_SHIFT));
+		
 	char buf[MAX_PATH];
 	GetWindowText(input, buf, sizeof(buf));
 
@@ -472,13 +486,38 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			args.button = btn;
 			args.status = status;
 			args.hwnd = hwnd;
-			Settings::lastInputPath = args.in;
-			Settings::lastOutputPath = args.out;
-			Settings::Save();
 			EnableWindow(btn, false);
 			SetWindowTextA(status, "Status: Starting parser...");
 			UpdateWindow(hwnd);
 			parse(args);
+			break;
+
+		case IDC_BROWSE_INPUT:
+			if (isShiftDown)
+			{
+				Settings::lastInputPath = Utils::browseDir(input);
+				Settings::Save();
+			}
+			else
+			{
+				Settings::lastInputPath = Utils::browse(hwnd, input, true);
+				Settings::Save(); //TODO: Fix this
+			}
+	
+			break;
+
+		case IDC_BROWSE_OUTPUT:
+			if (isShiftDown)
+			{
+				Settings::lastOutputPath = Utils::browseDir(output);
+				Settings::Save();
+			}
+			else
+			{
+				Settings::lastOutputPath = Utils::browse(hwnd, output, true);
+				Settings::Save();
+			}
+			
 			break;
 		}
 		break;
