@@ -196,6 +196,9 @@ namespace cJass
 		if (word == "native")
 			return word_t::native;
 
+		if (word == "allocate")
+			return word_t::allocate;
+
 		if (word == "do")
 			return word_t::Do;
 
@@ -544,6 +547,7 @@ namespace cJass
 			bool							doNotPutNewLine = false;
 			bool							goBackToComment = false;
 			bool							goBackToExpClose = false;
+			Node* nd, *nd2;
 
 			if (clearStatic)
 			{
@@ -1379,6 +1383,9 @@ namespace cJass
 					getReadyToEndStatement = false;
 				}
 
+				if (_word == "destroy")
+					_word = _word;
+
 				bool endOfLogic = false;
 				switch (wtype)
 				{
@@ -1405,6 +1412,30 @@ namespace cJass
 						break;
 					}
 
+				case word_t::allocate:
+					nd = _activeNode;
+					while (nd != nullptr && nd->GetType() != Node::Type::LocalDeclaration)
+						nd = nd->Top();
+
+					if (nd->GetType() == Node::Type::LocalDeclaration)
+					{
+						nd->Ptr<LocalDeclaration>()->DoNotPrint();
+						nd = nd->Top();
+						while (nd != nullptr && nd->GetType() != Node::Type::Method)
+							nd = nd->Top();
+
+						if (nd->GetType() == Node::Type::Method)
+						{
+							nd2 = _activeNode;
+							while (nd2 != nullptr && nd2->GetType() != Node::Type::OperationObject && nd2->Ptr<OperationObject>()->GetOpType() != OperationObject::OpType::VarInitExpression)
+								nd2 = nd2->Top();
+
+							if (nd2->GetType() == Node::Type::OperationObject && nd2->Ptr<OperationObject>()->GetOpType() == OperationObject::OpType::VarInitExpression)
+								nd->Ptr<Method>()->SetThisname(nd2->GetText());
+						}
+					}
+
+					break;
 				case word_t::This:
 				case word_t::id:
 					if (isLocalTop && !varAddedStack.top())
@@ -1526,7 +1557,7 @@ namespace cJass
 						}
 
 						std::string oper = _word;
-						if (wtype_prev == word_t::op || _activeNode->CountSubnodes() == 0 && oper == "-")
+						if (oper == "-" && (wtype_prev == word_t::op || _activeNode->CountSubnodes() == 0))
 							oper = "dig_minus";
 						_addNode(Node::Type::OperationObject, { "o", oper });
 					}

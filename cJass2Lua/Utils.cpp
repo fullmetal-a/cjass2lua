@@ -256,7 +256,9 @@ namespace Utils
 
 	std::string op2lua(const std::string& op, cJass::OperationObject::ConstType prevType)
 	{
-		if (op == "&&")
+		if (op == "!")
+			return " not ";
+		else if (op == "&&")
 			return " and ";
 		else if (op == "." || op == ":")
 			return op;
@@ -264,13 +266,11 @@ namespace Utils
 			return " .. ";
 		else if (op == "||")
 			return " or ";
-		else if (op == "!")
-			return " not ";
 		else if (op == "!=")
 			return " ~= ";
 		else if (op == "++" || op == "--" || op == "+=" || op == "-=" || op == "*=" || op == "/=")
 			return "";
-		if (op == "dig_minus")
+		else if (op == "dig_minus")
 			return "-";
 
 		return " " + op + " ";

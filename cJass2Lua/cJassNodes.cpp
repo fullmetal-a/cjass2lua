@@ -780,10 +780,14 @@ namespace cJass
 		if (mainTopNodeType == Node::Type::Function)
 			return name;
 
-		if (mainNode->Ptr<Method>()->IsStatic())
-			return name;
-
 		auto classNode = mainNode->Top();
+
+		if (mainNode->Ptr<Method>()->IsStatic())
+		{
+			if (mainNode->Ptr<Method>()->GetReplaceThisName() != "" && mainNode->Ptr<Method>()->GetReplaceThisName() == name)
+				return "this";
+			return name;
+		}	
 
 		if (classNode->Ptr<Class>()->HasNonstaticMember(name))
 		{
@@ -870,27 +874,27 @@ namespace cJass
 				if (_extra == "++")
 				{
 					if (_AssignUnary)
-						_out << _opText << " = " << _opText << " + 1";
+						_out << GetFullIdName() << " = " << GetFullIdName() << " + 1";
 					else
 					{
-						_out << "(" << _opText << " + 1" << ")";
+						_out << "(" << GetFullIdName() << " + 1" << ")";
 					}
 				}
 				else if (_extra == "--")
 				{
 					if (_AssignUnary)
-						_out << _opText << " = " << _opText << " - 1";
+						_out << GetFullIdName() << " = " << GetFullIdName() << " - 1";
 					else
-						_out << "(" << _opText << " - 1" << ")";
+						_out << "(" << GetFullIdName() << " - 1" << ")";
 				}
 					
 			}
 			else
 			{
 				if (!_isString)
-					_out << _opText << " = " << _opText << std::string({ ' ', _extra[0], ' ' });
+					_out << GetFullIdName() << " = " << GetFullIdName() << std::string({ ' ', _extra[0], ' ' });
 				else
-					_out << _opText << " = " << _opText << " .. ";
+					_out << GetFullIdName() << " = " << GetFullIdName() << " .. ";
 				for (auto& node : _subnodes)
 					node->ToLua();
 			}
@@ -914,7 +918,7 @@ namespace cJass
 			break;
 
 		case OpType::Call:
-			_out << _opText << "(";
+			_out << GetFullIdName() << "(";
 			nodeCount = CountSubnodes();
 			if (nodeCount > 0)
 			{
@@ -1228,6 +1232,7 @@ namespace cJass
 		case 'v':
 			_otype = OpType::VarInitExpression;
 			_isWrapper = true;
+			_opText = strings[1];
 			break;
 
 		case 'a':
@@ -1508,11 +1513,19 @@ namespace cJass
 		, _type("")
 		, _vars({})
 		, _arrSizes({})
+		, _doNotPrint(false)
 	{
 	}
 
 	void LocalDeclaration::ToLua()
 	{
+		if (_doNotPrint)
+		{
+			if (_root)
+				_root->TryToCreatePrintNotify();
+			return;
+		}
+
 		_out << OutputInterface::nl;
 		PrintTabs();
 		_out << "local ";
@@ -1611,6 +1624,11 @@ namespace cJass
 		return (_type != "");
 	}
 
+	void LocalDeclaration::DoNotPrint()
+	{
+		_doNotPrint = true;
+	}
+
 	Node* LocalDeclaration::AddVariable(const std::string& name, const std::string& arrSize)
 	{
 		appLog(Debug) << "Adding local variable" << name;
@@ -1621,7 +1639,7 @@ namespace cJass
 			_vars.push_back(name);
 		_arrSizes.push_back(arrSize);
 		auto node = Node::Produce(Node::Type::OperationObject, this, _out);
-		node->InitData({ "v" });
+		node->InitData({ "v", name });
 		AddSubnode(node);
 		return node->Ptr();
 	}
@@ -1666,9 +1684,7 @@ namespace cJass
 		, _className("")
 	{
 		_depthIndex++;
-		_memberList.push_back("allocate");
 		_memberList.push_back("deallocate");
-		_memberList.push_back("create");
 		_memberList.push_back("destroy");
 	}
 
@@ -1791,9 +1807,7 @@ namespace cJass
 		_out << OutputInterface::nl;
 
 		PrintTabs();
-		_out << "function this:allocate() return this end" << OutputInterface::nl;
-		PrintTabs();
-		_out << "function this:deallocate() end" << OutputInterface::nl;
+		_out << "function this.deallocate() this = nil end" << OutputInterface::nl;
 
 		if (CountSubnodes() > 1)
 		{
@@ -2007,10 +2021,11 @@ namespace cJass
 		{
 			_out << OutputInterface::nl;
 			PrintTabs(1);
-			_out << "function " << className << ":" << _name << "(";
+			_out << "function " << "this." << _name << "(";
 		}
 		else
-			_out << OutputInterface::nl << "function " << "this:" << _name << "(";
+			_out << "function " << className << ":" << _name << "(";
+			
 
 		if (_args.size() == 0)
 			_out << ")";
@@ -2054,6 +2069,16 @@ namespace cJass
 	std::string Method::GetMethodName() const
 	{
 		return _name;
+	}
+
+	void Method::SetThisname(const std::string& name)
+	{
+		_thisName = name;
+	}
+
+	std::string Method::GetReplaceThisName() const
+	{
+		return _thisName;
 	}
 
 	void Method::InitData(const std::vector<std::string>& strings)

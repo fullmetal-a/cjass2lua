@@ -42,7 +42,7 @@ Warcraft III Reforged brought us Lua scripting, but still a lot of map makers fo
 - Read logs if something goes wrong, this application leaves cjass2lua.log file with all it's actions and possible problems. Everything should be fine if you have no warnings.
 
 ### Latest release
-- [v1.11](https://github.com/fullmetal-a/cjass2lua/releases/tag/v1.11)
+- [v1.12](https://github.com/fullmetal-a/cjass2lua/releases/tag/v1.12)
 
 ### Manual
  (No TL;DR sections, complicated bullshit or other retarded shit, just exe file with simple interface)

@@ -11,7 +11,7 @@
 #pragma warning(disable : 4834)
 
 
-#define APP_VER		"1.11"
+#define APP_VER		"1.12"
 #ifdef _WIN64
 #define APP_BUILD	"x64"
 #else
@@ -108,7 +108,8 @@ namespace cJass
 		priv,
 		pub,
 		Static,
-		evaluate
+		evaluate,
+		allocate
 	};
 
 	enum class ParseSpecialSubject

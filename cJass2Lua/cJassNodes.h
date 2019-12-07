@@ -216,6 +216,7 @@ namespace cJass
 	{
 	private:
 		std::string					_name;
+		std::string					_thisName;
 		std::string					_returnType;
 		std::vector<std::string>	_args;
 		std::vector<std::string>	_strIds;
@@ -235,6 +236,8 @@ namespace cJass
 		bool HasStringId(const std::string& strId) const override;
 		bool IsStatic() const;
 		std::string GetMethodName() const;
+		void SetThisname(const std::string& name);
+		std::string GetReplaceThisName() const;
 	};
 
 
@@ -351,6 +354,7 @@ namespace cJass
 		std::string					 _type;
 		std::vector<std::string>	 _vars;
 		std::vector<std::string>	_arrSizes;
+		bool						_doNotPrint;
 
 	protected:
 		virtual void CountAllNodes() override;
@@ -362,5 +366,6 @@ namespace cJass
 		size_t GetVarCount() const;
 		Node* AddVariable(const std::string& name, const std::string& arrSize = 0);
 		bool hasType() const;
+		void DoNotPrint();
 	};
 }
